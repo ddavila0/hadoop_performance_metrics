@@ -3,7 +3,8 @@ import requests
 import json
 import os
 from ConfigParser import SafeConfigParser
-import pdb
+import logging
+import sys
 
 def query_hadoop(hostname, list_attr):
     Error=None
@@ -66,6 +67,7 @@ def format_for_influx(trimmed_dict):
     return data
 
 def main():
+    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s  %(levelname)s - %(message)s', datefmt='%Y%m%d %H:%M:%S')
     url = 'http://graph.t2.ucsd.edu:8086/write?db=hadoop_performance_metrics_db'
 
     base_dir = os.path.dirname(__file__)
@@ -79,8 +81,8 @@ def main():
         username = parser.get('auth', 'username')
         password = parser.get('auth', 'password')
     except:
-        raise NameError('Unable to read from config file: '+base_dir+'conf')
-
+        log.error('Unable to read from config file: '+base_dir+'conf')
+        sys.exit(1)
 
     list_attr = []
     fd = open(base_dir+'list_attributes')
@@ -98,17 +100,18 @@ def main():
         error, data_dict = query_hadoop(hostname, list_attr)
         error_uptime, uptime = query_uptime(hostname)
         if error or error_uptime:
-            print("ERROR in : "+hostname+": "+error)
+            log.error(hostname+": "+error)
         else:
-            uptime_days = uptime/(1000*3600*24)
-            data_dict['Uptime']=uptime
+            uptime_days = float(uptime)/(1000*3600*24)
+            data_dict['Uptime_days']=uptime/(1000*3600*24)
             data_dict['DatanodeNetworkErrors_perDay']=float(data_dict['DatanodeNetworkErrors'])/uptime_days
             data_dict['BytesWritten_perDay']=float(data_dict['BytesWritten'])/uptime_days
             data_dict['TotalWriteTime_perDay']=float(data_dict['TotalWriteTime'])/uptime_days
             data_dict['VolumeFailures_perDay']=float(data_dict['VolumeFailures'])/uptime_days
 
             data = format_for_influx(data_dict)
-        r = requests.post(url, auth=(username, password), data=data, timeout=40)
+            r = requests.post(url, auth=(username, password), data=data, timeout=40)
 
+log = logging.getLogger()
 if __name__ == "__main__":
     main()
