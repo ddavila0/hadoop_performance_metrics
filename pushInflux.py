@@ -10,7 +10,7 @@ def query_hadoop(hostname, list_attr):
     trimmed_dict = {}
     command=['curl', '-s', 'http://'+hostname+':50075/jmx?qry=Hadoop:service=DataNode,name=DataNodeActivity-'+hostname+'-50010']
 
-try:
+    try:
         fs = subprocess.Popen(command,stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         stdout, stderr = fs.communicate()
     except:
@@ -108,8 +108,7 @@ def main():
             data_dict['VolumeFailures_perDay']=float(data_dict['VolumeFailures'])/uptime_days
 
             data = format_for_influx(data_dict)
-        print(data)
-        #r = requests.post(url, auth=(username, password), data=data, timeout=40)
+        r = requests.post(url, auth=(username, password), data=data, timeout=40)
 
 if __name__ == "__main__":
     main()
